@@ -279,10 +279,8 @@ const fetchProducts = async (resetPage = false) => {
     let response;
     let allFetchedProducts: Product[] = [];
 
-    // When filtering by price, we need to fetch all products for that query
-    // and then filter/paginate on the client side.
     const fetchParams: any = {
-      limit: 1000, // Fetch a large number for client-side filtering
+      limit: 1000,
       skip: 0,
     };
 
@@ -291,7 +289,6 @@ const fetchProducts = async (resetPage = false) => {
       categories.value = categoriesData;
     }
 
-    // 1. Fetch base data from API based on category and search
     if (selectedCategory.value && searchTerm.value.trim()) {
       response = await getProductsByCategory(
         selectedCategory.value,
@@ -312,11 +309,9 @@ const fetchProducts = async (resetPage = false) => {
       response = await searchProducts(searchTerm.value, fetchParams);
       allFetchedProducts = response.products || [];
     } else {
-      // No category or search, fetch all products for price filtering or pagination
       if (allProducts.value.length === 0) {
         response = await getAllProducts(fetchParams);
         allProducts.value = response.products || [];
-        // Set the actual price range from all products on first load
         const prices = allProducts.value.map(p => p.price);
         actualPriceRange.value.min = Math.min(...prices);
         actualPriceRange.value.max = Math.max(...prices);
@@ -324,7 +319,6 @@ const fetchProducts = async (resetPage = false) => {
       allFetchedProducts = allProducts.value;
     }
 
-    // 2. Apply price filter on the fetched data
     let filteredProducts = allFetchedProducts;
     if (isPriceFilterActive.value) {
       filteredProducts = allFetchedProducts.filter((product) => {
@@ -337,8 +331,6 @@ const fetchProducts = async (resetPage = false) => {
       });
     }
 
-    // 3. Apply pagination to the final filtered list
-    totalProducts.value = filteredProducts.length;
     totalPages.value = Math.ceil(totalProducts.value / pageSize);
     products.value = filteredProducts.slice(skip, skip + pageSize);
 
