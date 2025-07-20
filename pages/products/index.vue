@@ -5,60 +5,196 @@
         <h1>Products</h1>
         <p>Discover our wide range of products</p>
       </div>
-      
-      <!-- TODO: Implement filters and search -->
+
       <div class="products-controls">
-        <div class="search-section">
-          <div class="search-placeholder">
-            <h3>🔍 Search Functionality Missing</h3>
-            <p>Implement search input with the following features:</p>
-            <ul>
-              <li>Search by product title</li>
-              <li>Real-time search with debouncing</li>
-              <li>Search suggestions</li>
-              <li>Clear search functionality</li>
-            </ul>
-          </div>
+        <div class="search-section" style="grid-column: 1 / -1">
+          <h3>Search Products</h3>
+          <input
+            v-model="searchTerm"
+            type="text"
+            class="form-input"
+            placeholder="Search product title"
+          />
+          <button v-if="searchTerm" @click="clearSearch" class="clear-search">
+            Clear Search
+          </button>
         </div>
-        
+
         <div class="filters-section">
+          <!-- <div class="filters-section">
           <div class="filters-placeholder">
             <h3>🎛️ Filters Missing</h3>
             <p>Implement the following filters:</p>
             <ul>
-              <li>Category filter (dropdown)</li>
-              <li>Price range filter (slider or inputs)</li>
+              //<li>Category filter (dropdown)</li>
+              //<li>Price range filter (slider or inputs)</li>
               <li>Brand filter (checkbox list)</li>
               <li>Rating filter (star rating)</li>
               <li>Sort options (price, rating, popularity)</li>
             </ul>
+          </div> -->
+          <h3>Filter</h3>
+          <div class="filter-group">
+            <label for="category">Category</label>
+            <div class="select-wrapper">
+              <select v-model="selectedCategory" name="category" id="category" class="form-input">
+                <option value="">All Categories</option>
+                <option
+                  v-for="category in categories"
+                  :key="getCategoryKey(category)"
+                  :value="getCategoryValue(category)"
+                >
+                  {{ getCategoryLabel(category) }}
+                </option>
+              </select>
+              <span class="select-arrow"></span>
+            </div>
+          </div>
+
+          <div class="filter-group">
+            <label>Price Range</label>
+            <div class="price-range-container">
+              <div class="price-input-group">
+                <input
+                  v-model.number="priceRange.min"
+                  type="number"
+                  class="form-input price-input"
+                  placeholder="Min Price"
+                  :min="0"
+                />
+                <span class="price-separator">-</span>
+                <input
+                  v-model.number="priceRange.max"
+                  type="number"
+                  class="form-input price-input"
+                  placeholder="Max Price"
+                  :min="0"
+                />
+              </div>
+              <div class="price-range-info">
+                <!-- <small>Available range: ${{ actualPriceRange.min }} - ${{ actualPriceRange.max }}</small> -->
+              </div>
+            </div>
           </div>
         </div>
       </div>
-      
-      <!-- TODO: Implement product grid with pagination -->
+
+      <!-- Active Filters Display -->
+      <!-- <div v-if="selectedCategory || searchTerm" class="active-filters">
+        <h4>Active Filters:</h4>
+        <div class="filter-tags">
+          <span v-if="selectedCategory" class="filter-tag">
+            Category: {{ selectedCategory }}
+            <button @click="clearCategory" class="remove-filter">×</button>
+          </span>
+          <span v-if="searchTerm" class="filter-tag">
+            Search: "{{ searchTerm }}"
+            <button @click="clearSearch" class="remove-filter">×</button>
+          </span>
+        </div>
+      </div> -->
+
       <div class="products-content">
-        <div class="products-grid-placeholder">
-          <h3>📦 Product Grid Missing</h3>
-          <p>Implement the product grid with the following features:</p>
-          <ul>
-            <li>Grid/List view toggle</li>
-            <li>Product cards with hover effects</li>
-            <li>Pagination controls</li>
-            <li>Loading states</li>
-            <li>Empty state handling</li>
-            <li>Responsive design</li>
-          </ul>
-          
-          <div class="implementation-hints">
-            <h4>Implementation Hints:</h4>
-            <ul>
-              <li>Use the <code>useProducts()</code> composable for API calls</li>
-              <li>Implement URL query parameters for filters</li>
-              <li>Use the existing <code>ProductCard</code> component</li>
-              <li>Add proper loading and error states</li>
-              <li>Consider infinite scroll or pagination</li>
-            </ul>
+        <div class="products-header-info">
+          <h2>Products</h2>
+          <div class="results-info">
+            <span v-if="!loading">
+              {{ totalProducts }} products found
+              <span v-if="selectedCategory"> in {{ selectedCategory }}</span>
+              <span v-if="searchTerm"> for "{{ searchTerm }}"</span>
+            </span>
+          </div>
+        </div>
+
+        <div v-if="loading" class="loading-container">
+          <div class="spinner"></div>
+          <p>Loading products...</p>
+        </div>
+
+        <div v-else-if="error" class="alert alert-error">
+          {{ error }}
+        </div>
+
+        <div v-else-if="products.length === 0" class="no-results">
+          <h3>No products found</h3>
+          <p v-if="selectedCategory || searchTerm">
+            Try adjusting your filters or
+            <button @click="clearAllFilters" class="link-button">
+              clear all filters
+            </button>
+          </p>
+          <p v-else>No products available at the moment.</p>
+        </div>
+
+        <div v-else class="products-grid">
+          <ProductCard
+            v-for="product in products"
+            :key="product.id"
+            :product="product"
+          />
+        </div>
+
+        <div v-if="totalPages > 1" class="pagination-container">
+          <div class="pagination">
+            <button
+              @click="prevPage"
+              :disabled="currentPage === 1"
+              class="pagination-btn"
+            >
+              Previous
+            </button>
+
+            <div class="pagination-numbers">
+              <button
+                v-if="currentPage > 3"
+                @click="goToPage(1)"
+                class="pagination-number"
+              >
+                1
+              </button>
+
+              <span v-if="currentPage > 4" class="pagination-ellipsis"
+                >...</span
+              >
+
+              <button
+                v-for="page in getVisiblePages()"
+                :key="page"
+                @click="goToPage(page)"
+                :class="['pagination-number', { active: page === currentPage }]"
+              >
+                {{ page }}
+              </button>
+
+              <span
+                v-if="currentPage < totalPages - 3"
+                class="pagination-ellipsis"
+                >...</span
+              >
+
+              <button
+                v-if="currentPage < totalPages - 2"
+                @click="goToPage(totalPages)"
+                class="pagination-number"
+              >
+                {{ totalPages }}
+              </button>
+            </div>
+
+            <button
+              @click="nextPage"
+              :disabled="currentPage === totalPages"
+              class="pagination-btn"
+            >
+              Next
+            </button>
+          </div>
+
+          <div class="pagination-info">
+            Page {{ currentPage }} of {{ totalPages }} ({{
+              (currentPage - 1) * pageSize + 1
+            }}-{{ Math.min(currentPage * pageSize, totalProducts) }} of
+            {{ totalProducts }})
           </div>
         </div>
       </div>
@@ -67,38 +203,236 @@
 </template>
 
 <script setup lang="ts">
-// TODO: Implement the following functionality:
-// 1. Fetch products from API using useProducts() composable
-// 2. Implement search functionality with debouncing
-// 3. Add category, price, brand, and rating filters
-// 4. Implement pagination or infinite scroll
-// 5. Add grid/list view toggle
-// 6. Handle loading and error states
-// 7. Make it responsive for mobile devices
+import type { Product } from "~/types";
 
-// Example starter code:
-// const { getAllProducts, getCategories, searchProducts } = useProducts()
-// const products = ref([])
-// const categories = ref([])
-// const loading = ref(false)
-// const error = ref(null)
+const { getAllProducts, getCategories, searchProducts, getProductsByCategory } =
+  useProducts();
+const products = ref<Product[]>([]);
+const categories = ref<string[]>([]);
+const loading = ref(false);
+const error = ref(null);
 
-// Fetch initial data
-// onMounted(async () => {
-//   try {
-//     loading.value = true
-//     const [productsResponse, categoriesData] = await Promise.all([
-//       getAllProducts({ limit: 20 }),
-//       getCategories()
-//     ])
-//     products.value = productsResponse.products
-//     categories.value = categoriesData
-//   } catch (err) {
-//     error.value = err.message
-//   } finally {
-//     loading.value = false
-//   }
-// })
+const currentPage = ref(1);
+const pageSize = 20;
+const totalPages = ref(1);
+const totalProducts = ref(0);
+
+const searchTerm = ref("");
+const selectedCategory = ref("");
+
+const priceRange = ref({
+  min: null as number | null,
+  max: null as number | null,
+});
+
+// To store the actual min/max price of all available products
+const actualPriceRange = ref({
+  min: 0,
+  max: 0,
+});
+
+const allProducts = ref<Product[]>([]); // Cache for client-side filtering
+
+const isPriceFilterActive = computed(() => {
+  return (
+    (priceRange.value.min !== null &&
+      priceRange.value.min !== actualPriceRange.value.min) ||
+    (priceRange.value.max !== null &&
+      priceRange.value.max !== actualPriceRange.value.max)
+  );
+});
+
+const getCategoryKey = (category: any) => {
+  return typeof category === "object" ? category.id || category.name : category;
+};
+
+const getCategoryValue = (category: any) => {
+  return typeof category === "object" ? category.slug : String(category);
+};
+
+const getCategoryLabel = (category: any) => {
+  return typeof category === "object" ? category.name : String(category);
+};
+
+const clearSearch = () => {
+  searchTerm.value = "";
+  fetchProducts(true);
+};
+
+const clearAllFilters = () => {
+  selectedCategory.value = "";
+  searchTerm.value = "";
+  priceRange.value.min = null;
+  priceRange.value.max = null;
+  fetchProducts(true);
+};
+
+const fetchProducts = async (resetPage = false) => {
+  if (resetPage) {
+    currentPage.value = 1;
+  }
+  loading.value = true;
+  error.value = null;
+
+  try {
+    const skip = (currentPage.value - 1) * pageSize;
+    let response;
+    let allFetchedProducts: Product[] = [];
+
+    // When filtering by price, we need to fetch all products for that query
+    // and then filter/paginate on the client side.
+    const fetchParams: any = {
+      limit: 1000, // Fetch a large number for client-side filtering
+      skip: 0,
+    };
+
+    if (categories.value.length === 0) {
+      const categoriesData = await getCategories();
+      categories.value = categoriesData;
+    }
+
+    // 1. Fetch base data from API based on category and search
+    if (selectedCategory.value && searchTerm.value.trim()) {
+      response = await getProductsByCategory(
+        selectedCategory.value,
+        fetchParams
+      );
+      if (response.products) {
+        allFetchedProducts = response.products.filter((product) =>
+          product.title.toLowerCase().includes(searchTerm.value.toLowerCase())
+        );
+      }
+    } else if (selectedCategory.value && !searchTerm.value.trim()) {
+      response = await getProductsByCategory(
+        selectedCategory.value,
+        fetchParams
+      );
+      allFetchedProducts = response.products || [];
+    } else if (!selectedCategory.value && searchTerm.value.trim()) {
+      response = await searchProducts(searchTerm.value, fetchParams);
+      allFetchedProducts = response.products || [];
+    } else {
+      // No category or search, fetch all products for price filtering or pagination
+      if (allProducts.value.length === 0) {
+        response = await getAllProducts(fetchParams);
+        allProducts.value = response.products || [];
+        // Set the actual price range from all products on first load
+        const prices = allProducts.value.map(p => p.price);
+        actualPriceRange.value.min = Math.min(...prices);
+        actualPriceRange.value.max = Math.max(...prices);
+      }
+      allFetchedProducts = allProducts.value;
+    }
+
+    // 2. Apply price filter on the fetched data
+    let filteredProducts = allFetchedProducts;
+    if (isPriceFilterActive.value) {
+      filteredProducts = allFetchedProducts.filter((product) => {
+        const price = product.price;
+        const minCheck =
+          priceRange.value.min === null || price >= priceRange.value.min;
+        const maxCheck =
+          priceRange.value.max === null || price <= priceRange.value.max;
+        return minCheck && maxCheck;
+      });
+    }
+
+    // 3. Apply pagination to the final filtered list
+    totalProducts.value = filteredProducts.length;
+    totalPages.value = Math.ceil(totalProducts.value / pageSize);
+    products.value = filteredProducts.slice(skip, skip + pageSize);
+
+  } catch (err) {
+    console.error("Failed to load products:", err);
+    products.value = [];
+    totalProducts.value = 0;
+    totalPages.value = 0;
+  } finally {
+    loading.value = false;
+  }
+};
+
+// Debounced
+let searchTimeout: ReturnType<typeof setTimeout> | null = null;
+let priceTimeout: ReturnType<typeof setTimeout> | null = null;
+
+const debouncedSearch = () => {
+  if (searchTimeout) {
+    clearTimeout(searchTimeout);
+  }
+
+  searchTimeout = setTimeout(() => {
+    fetchProducts(true);
+  }, 500);
+};
+
+const debouncedPriceFilter = () => {
+  if (priceTimeout) {
+    clearTimeout(priceTimeout);
+  }
+  priceTimeout = setTimeout(() => {
+    fetchProducts(true);
+  }, 800); // Longer debounce for price inputs
+};
+
+watch(searchTerm, () => {
+  debouncedSearch();
+});
+
+watch(selectedCategory, () => {
+  fetchProducts(true);
+});
+
+watch(
+  priceRange,
+  () => {
+    debouncedPriceFilter();
+  },
+  { deep: true }
+);
+
+const nextPage = () => {
+  if (currentPage.value < totalPages.value) {
+    currentPage.value++;
+    fetchProducts();
+  }
+};
+
+const prevPage = () => {
+  if (currentPage.value > 1) {
+    currentPage.value--;
+    fetchProducts();
+  }
+};
+
+const goToPage = (page: number) => {
+  if (page >= 1 && page <= totalPages.value && page !== currentPage.value) {
+    currentPage.value = page;
+    fetchProducts();
+  }
+};
+
+const getVisiblePages = () => {
+  const pages = [];
+  const start = Math.max(1, currentPage.value - 2);
+  const end = Math.min(totalPages.value, currentPage.value + 2);
+
+  for (let i = start; i <= end; i++) {
+    pages.push(i);
+  }
+
+  return pages;
+};
+
+// Clear category filter
+// const clearCategory = () => {
+//   selectedCategory.value = "";
+// };
+
+// Initial load
+onMounted(() => {
+  fetchProducts();
+});
 </script>
 
 <style scoped>
@@ -119,6 +453,18 @@
   color: var(--text-light);
 }
 
+.products-header-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.results-info {
+  color: var(--text-light);
+  font-size: 0.9rem;
+}
+
 .products-controls {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -132,6 +478,7 @@
   border-radius: var(--border-radius);
   padding: 2rem;
   box-shadow: var(--shadow-sm);
+  grid-column: 1 / -1;
 }
 
 .search-placeholder,
@@ -165,11 +512,41 @@
   margin-bottom: 0.5rem;
 }
 
+.search-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background-color: #f3f4f6;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.clear-search {
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  cursor: pointer;
+  text-decoration: underline;
+  font-size: 0.875rem;
+}
+
+.clear-search:hover {
+  color: var(--primary-color-dark);
+}
+
 .products-content {
   background-color: white;
   border-radius: var(--border-radius);
   padding: 3rem;
   box-shadow: var(--shadow-sm);
+}
+
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2rem;
 }
 
 .products-grid-placeholder {
@@ -200,28 +577,292 @@
   margin-bottom: 0.5rem;
 }
 
-.implementation-hints {
-  margin-top: 2rem;
-  padding-top: 2rem;
-  border-top: 1px solid #93c5fd;
-  text-align: left;
+.price-range-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
-.implementation-hints h4 {
-  color: #1e40af;
-  margin-bottom: 1rem;
+.price-input-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.implementation-hints code {
-  background-color: #f1f5f9;
-  padding: 0.125rem 0.25rem;
-  border-radius: 0.25rem;
+.price-input {
+  flex: 1;
+  min-width: 100px;
+}
+
+.price-separator {
+  color: var(--text-light);
+  font-weight: 500;
+}
+
+.price-range-info {
+  color: var(--text-light);
+  font-size: 0.8rem;
+}
+
+.no-results {
+  text-align: center;
+  padding: 3rem;
+  color: var(--text-light);
+}
+
+.link-button {
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.pagination-container {
+  margin-top: 3rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.pagination-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid #ddd;
+  background-color: white;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-numbers {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pagination-number {
+  width: 40px;
+  height: 40px;
+  border: 1px solid #ddd;
+  background-color: white;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pagination-number:hover {
+  background-color: #f5f5f5;
+}
+
+.pagination-number.active {
+  background-color: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.pagination-ellipsis {
+  padding: 0 0.5rem;
+  color: var(--text-light);
+}
+
+.pagination-info {
+  color: var(--text-light);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  gap: 1rem;
+}
+
+.loading-container p {
+  color: var(--text-light);
+}
+
+.active-filters {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--border-radius);
+  padding: 1rem;
+  margin-bottom: 2rem;
+}
+
+.active-filters h4 {
+  margin: 0 0 0.5rem 0;
+  color: var(--text-dark);
+  font-size: 0.9rem;
+}
+
+.filter-tags {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.filter-tag {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.remove-filter {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.remove-filter:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.clear-category {
+  margin-top: 0.5rem;
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  cursor: pointer;
+  text-decoration: underline;
   font-size: 0.875rem;
-  color: #475569;
+}
+
+.clear-category:hover {
+  color: var(--primary-color-dark);
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: var(--border-radius);
+  font-size: 1rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+  background-color: #fff;
+  color: var(--text-dark);
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.filter-group {
+  margin-bottom: 1.5rem;
+}
+
+.filter-group:last-child {
+  margin-bottom: 0;
+}
+
+.filter-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: var(--text-dark);
+}
+
+.select-wrapper {
+  position: relative;
+}
+
+.select-wrapper .form-input {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  padding-right: 2.5rem; /* Make space for the arrow */
+  cursor: pointer;
+}
+
+.select-arrow {
+  position: absolute;
+  top: 50%;
+  right: 1rem;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid #6b7280; /* Arrow color */
+  pointer-events: none;
+  transition: transform 0.2s ease;
+}
+
+.select-wrapper .form-input:focus + .select-arrow {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+@media (max-width: 768px) {
+  .products-header-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .pagination {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .pagination-numbers {
+    order: -1;
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 @media (max-width: 768px) {
   .products-controls {
+    grid-template-columns: 1fr;
+  }
+  .products-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .products-grid {
     grid-template-columns: 1fr;
   }
 }
