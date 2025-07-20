@@ -7,7 +7,7 @@
       </div>
 
       <div class="products-controls">
-        <div class="search-section" style="grid-column: 1 / -1">
+        <div class="search-section">
           <h3>Search Products</h3>
           <input
             v-model="searchTerm"
@@ -19,80 +19,139 @@
             Clear Search
           </button>
         </div>
-
         <div class="filters-section">
-          <!-- <div class="filters-section">
-          <div class="filters-placeholder">
-            <h3>🎛️ Filters Missing</h3>
-            <p>Implement the following filters:</p>
-            <ul>
-              //<li>Category filter (dropdown)</li>
-              //<li>Price range filter (slider or inputs)</li>
-              <li>Brand filter (checkbox list)</li>
-              <li>Rating filter (star rating)</li>
-              <li>Sort options (price, rating, popularity)</li>
-            </ul>
-          </div> -->
-          <h3>Filter</h3>
-          <div class="filter-group">
-            <label for="category">Category</label>
-            <div class="select-wrapper">
-              <select v-model="selectedCategory" name="category" id="category" class="form-input">
-                <option value="">All Categories</option>
-                <option
-                  v-for="category in categories"
-                  :key="getCategoryKey(category)"
-                  :value="getCategoryValue(category)"
+          <div class="filters-header">
+              <h3>Filters</h3>
+            <button @click="showFilters = !showFilters" class="toggle-filters-btn">
+              <span class="toggle-text">{{ showFilters ? 'Hide' : 'Show' }}</span>
+            </button>
+          </div>
+          
+          <div v-if="showFilters" class="filters-content">
+            <div class="filter-group">
+              <h4>Category</h4>
+              <div class="select-wrapper">
+                <select
+                  v-model="selectedCategory"
+                  name="category"
+                  id="category"
+                  class="form-input"
                 >
-                  {{ getCategoryLabel(category) }}
-                </option>
-              </select>
-              <span class="select-arrow"></span>
+                  <option value="">All Categories</option>
+                  <option
+                    v-for="category in categories"
+                    :key="getCategoryKey(category)"
+                    :value="getCategoryValue(category)"
+                  >
+                    {{ getCategoryLabel(category) }}
+                  </option>
+                </select>
+                <span class="select-arrow"></span>
+              </div>
             </div>
-          </div>
 
-          <div class="filter-group">
-            <label>Price Range</label>
-            <div class="price-range-container">
-              <div class="price-input-group">
-                <input
-                  v-model.number="priceRange.min"
-                  type="number"
-                  class="form-input price-input"
-                  placeholder="Min Price"
-                  :min="0"
-                />
-                <span class="price-separator">-</span>
-                <input
-                  v-model.number="priceRange.max"
-                  type="number"
-                  class="form-input price-input"
-                  placeholder="Max Price"
-                  :min="0"
-                />
+            <div class="filter-group">
+              <h4>Price Range</h4>
+              <div class="price-range-container">
+                <div class="price-input-group">
+                  <input
+                    v-model.number="priceRange.min"
+                    type="number"
+                    class="form-input price-input"
+                    placeholder="Min Price"
+                    :min="0"
+                  />
+                  <span class="price-separator">-</span>
+                  <input
+                    v-model.number="priceRange.max"
+                    type="number"
+                    class="form-input price-input"
+                    placeholder="Max Price"
+                    :min="0"
+                  />
+                </div>
+                <div class="price-range-info">
+                  <small
+                    >Available range: ${{ actualPriceRange.min }} - ${{
+                      actualPriceRange.max
+                    }}</small
+                  >
+                </div>
               </div>
-              <div class="price-range-info">
-                <!-- <small>Available range: ${{ actualPriceRange.min }} - ${{ actualPriceRange.max }}</small> -->
+            </div>
+
+            <div class="filter-group">
+              <h4>Brand</h4>
+              <div class="filter-options-list">
+                <div
+                  v-for="brand in displayedBrands"
+                  :key="brand"
+                  class="checkbox-item"
+                >
+                  <input
+                    type="checkbox"
+                    :id="`brand-${brand}`"
+                    :value="brand"
+                    v-model="selectedBrands"
+                  />
+                  
+                  <label :for="`brand-${brand}`">{{" "}}{{ brand }}</label>
+                </div>
               </div>
+               <button
+                v-if="availableBrands.length > initialBrandLimit"
+                @click="toggleBrands"
+                class="see-more-btn"
+              >
+                {{ brandsExpanded ? 'See Less' : `See More (${availableBrands.length - initialBrandLimit})` }}
+              </button>
+            </div>
+
+            <div class="filter-group">
+              <h4>Sort By</h4>
+              <div class="select-wrapper">
+                <select
+                  v-model="sortBy"
+                  name="sortBy"
+                  id="sortBy"
+                  class="form-input"
+                >
+                  <option
+                    v-for="option in sortOptions"
+                    :key="option.value"
+                    :value="option.value"
+                  >
+                    {{ option.label }}
+                  </option>
+                </select>
+                <span class="select-arrow"></span>
+              </div>
+            </div>
+
+            <div class="filter-group">
+              <h4>Rating</h4>
+              <div class="star-rating-filter" @mouseleave="hoverRating = 0">
+                <span
+                  v-for="star in 5"
+                  :key="star"
+                  class="star"
+                  @click="setRating(star)"
+                  @mouseover="hoverRating = star"
+                  :class="{ 'filled': star <= (hoverRating || selectedRating) }"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24">
+                    <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                  </svg>
+                </span>
+              </div>
+              <button v-if="selectedRating > 0" @click="clearRatingFilter" class="clear-rating-btn">
+                Clear Rating
+              </button>
             </div>
           </div>
         </div>
+
       </div>
-
-      <!-- Active Filters Display -->
-      <!-- <div v-if="selectedCategory || searchTerm" class="active-filters">
-        <h4>Active Filters:</h4>
-        <div class="filter-tags">
-          <span v-if="selectedCategory" class="filter-tag">
-            Category: {{ selectedCategory }}
-            <button @click="clearCategory" class="remove-filter">×</button>
-          </span>
-          <span v-if="searchTerm" class="filter-tag">
-            Search: "{{ searchTerm }}"
-            <button @click="clearSearch" class="remove-filter">×</button>
-          </span>
-        </div>
-      </div> -->
 
       <div class="products-content">
         <div class="products-header-info">
@@ -219,19 +278,59 @@ const totalProducts = ref(0);
 
 const searchTerm = ref("");
 const selectedCategory = ref("");
+const selectedBrands = ref<string[]>([]);
+const sortBy = ref<string>('');
+
+const sortOptions = [
+  { value: '', label: 'Default' },
+  { value: 'price', label: 'Price: Low to High' },
+  { value: 'price-desc', label: 'Price: High to Low' },
+  { value: 'rating', label: 'Rating: High to Low' },
+  { value: 'rating-asc', label: 'Rating: Low to High' },
+  { value: 'popularity', label: 'Most Popular' },
+  { value: 'newest', label: 'Newest First' }
+];
 
 const priceRange = ref({
   min: null as number | null,
   max: null as number | null,
 });
 
-// To store the actual min/max price of all available products
 const actualPriceRange = ref({
   min: 0,
   max: 0,
 });
 
-const allProducts = ref<Product[]>([]); // Cache for client-side filtering
+const allProducts = ref<Product[]>([]);
+
+const showFilters = ref(true);
+
+const brandsExpanded = ref(false);
+const initialBrandLimit = 3;
+
+const selectedRating = ref(0);
+const hoverRating = ref(0);
+
+const availableBrands = computed(() => {
+  if (!allProducts.value.length) return [];
+  const brands = new Set(
+    allProducts.value
+      .map((p) => p.brand)
+      .filter((brand) => brand && brand.trim() !== "")
+  );
+  return Array.from(brands).sort();
+});
+
+const displayedBrands = computed(() => {
+  if (brandsExpanded.value) {
+    return availableBrands.value;
+  }
+  return availableBrands.value.slice(0, initialBrandLimit);
+});
+
+const toggleBrands = () => {
+  brandsExpanded.value = !brandsExpanded.value;
+};
 
 const isPriceFilterActive = computed(() => {
   return (
@@ -254,6 +353,18 @@ const getCategoryLabel = (category: any) => {
   return typeof category === "object" ? category.name : String(category);
 };
 
+function setRating(rating: number) {
+  if (selectedRating.value === rating) {
+    selectedRating.value = 0;
+  } else {
+    selectedRating.value = rating;
+  }
+}
+
+function clearRatingFilter() {
+  selectedRating.value = 0;
+}
+
 const clearSearch = () => {
   searchTerm.value = "";
   fetchProducts(true);
@@ -262,9 +373,67 @@ const clearSearch = () => {
 const clearAllFilters = () => {
   selectedCategory.value = "";
   searchTerm.value = "";
+  selectedBrands.value = [];
   priceRange.value.min = null;
   priceRange.value.max = null;
+  selectedRating.value = 0;
+  sortBy.value = ''; 
   fetchProducts(true);
+};
+
+const calculatePopularity = (product: Product) => {
+  const weights = {
+    rating: 0.4,        
+    reviews: 0.3,       
+    sales: 0.3          
+  };
+
+  const ratingScore = (product.rating / 5) * 100; 
+  
+  const maxReviews = 1000;
+  const reviewScore = Math.min((product.reviews.length || 0) / maxReviews * 100, 100); 
+
+  const salesScore = (product.discountPercentage || 0) * 2; 
+
+  const popularityScore = 
+    (ratingScore * weights.rating) +
+    (reviewScore * weights.reviews) +
+    (salesScore * weights.sales);
+
+  return popularityScore;
+};
+
+const sortProducts = (products: Product[]) => {
+  if (!sortBy.value) return products;
+
+  const sorted = [...products].sort((a, b) => {
+    switch (sortBy.value) {
+      case 'price':
+        return a.price - b.price;
+      
+      case 'price-desc':
+        return b.price - a.price;
+      
+      case 'rating':
+        return b.rating - a.rating;
+      
+      case 'rating-asc':
+        return a.rating - b.rating;
+      
+      case 'popularity':
+        const aPopularity = calculatePopularity(a);
+        const bPopularity = calculatePopularity(b);
+        return bPopularity - aPopularity;
+      
+      case 'newest':
+        return b.id - a.id; 
+      
+      default:
+        return 0;
+    }
+  });
+
+  return sorted;
 };
 
 const fetchProducts = async (resetPage = false) => {
@@ -275,7 +444,6 @@ const fetchProducts = async (resetPage = false) => {
   error.value = null;
 
   try {
-    const skip = (currentPage.value - 1) * pageSize;
     let response;
     let allFetchedProducts: Product[] = [];
 
@@ -312,7 +480,7 @@ const fetchProducts = async (resetPage = false) => {
       if (allProducts.value.length === 0) {
         response = await getAllProducts(fetchParams);
         allProducts.value = response.products || [];
-        const prices = allProducts.value.map(p => p.price);
+        const prices = allProducts.value.map((p) => p.price);
         actualPriceRange.value.min = Math.min(...prices);
         actualPriceRange.value.max = Math.max(...prices);
       }
@@ -331,9 +499,29 @@ const fetchProducts = async (resetPage = false) => {
       });
     }
 
-    totalPages.value = Math.ceil(totalProducts.value / pageSize);
-    products.value = filteredProducts.slice(skip, skip + pageSize);
+    if (selectedBrands.value.length > 0) {
+      filteredProducts = filteredProducts.filter(product => 
+        selectedBrands.value.includes(product.brand)
+      );
+    }
 
+    if (selectedRating.value > 0) {
+      filteredProducts = filteredProducts.filter(product => 
+        product.rating >= selectedRating.value
+      );
+    }
+
+    filteredProducts = sortProducts(filteredProducts);
+
+    totalProducts.value = filteredProducts.length;
+    totalPages.value = Math.ceil(totalProducts.value / pageSize);
+
+    if (currentPage.value > totalPages.value) {
+      currentPage.value = 1;
+    }
+    
+    const skip = (currentPage.value - 1) * pageSize;
+    products.value = filteredProducts.slice(skip, skip + pageSize);
   } catch (err) {
     console.error("Failed to load products:", err);
     products.value = [];
@@ -383,6 +571,22 @@ watch(
   { deep: true }
 );
 
+watch(
+  selectedBrands,
+  () => {
+    fetchProducts(true);
+  },
+  { deep: true }
+);
+
+watch(selectedRating, () => {
+  fetchProducts(true);
+});
+
+watch(sortBy, () => {
+  fetchProducts(true);
+});
+
 const nextPage = () => {
   if (currentPage.value < totalPages.value) {
     currentPage.value++;
@@ -416,11 +620,6 @@ const getVisiblePages = () => {
   return pages;
 };
 
-// Clear category filter
-// const clearCategory = () => {
-//   selectedCategory.value = "";
-// };
-
 // Initial load
 onMounted(() => {
   fetchProducts();
@@ -430,6 +629,12 @@ onMounted(() => {
 <style scoped>
 .products-page {
   padding: 2rem 0;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
 }
 
 .products-header {
@@ -457,6 +662,24 @@ onMounted(() => {
   font-size: 0.9rem;
 }
 
+.search-section,
+.filters-section,
+.products-content {
+  background-color: white;
+  border-radius: var(--border-radius);
+  padding: 2rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.search-section,
+.filters-section {
+  grid-column: 1 / -1;
+}
+
+.products-content {
+  padding: 3rem;
+}
+
 .products-controls {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -464,109 +687,148 @@ onMounted(() => {
   margin-bottom: 3rem;
 }
 
-.search-section,
-.filters-section {
-  background-color: white;
-  border-radius: var(--border-radius);
-  padding: 2rem;
-  box-shadow: var(--shadow-sm);
-  grid-column: 1 / -1;
-}
-
-.search-placeholder,
-.filters-placeholder {
-  background-color: #fef3c7;
-  border: 1px solid #f59e0b;
-  border-radius: var(--border-radius);
-  padding: 1.5rem;
-}
-
-.search-placeholder h3,
-.filters-placeholder h3 {
-  color: #92400e;
-  margin-bottom: 1rem;
-}
-
-.search-placeholder p,
-.filters-placeholder p {
-  color: #92400e;
-  margin-bottom: 1rem;
-}
-
-.search-placeholder ul,
-.filters-placeholder ul {
-  color: #92400e;
-  margin-left: 1.5rem;
-}
-
-.search-placeholder li,
-.filters-placeholder li {
-  margin-bottom: 0.5rem;
-}
-
-.search-info {
+.filters-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 0.5rem;
-  padding: 0.5rem;
-  background-color: #f3f4f6;
-  border-radius: 4px;
-  font-size: 0.875rem;
+  padding: 1rem 1.5rem;
+  margin: -1rem -1rem 1.5rem -1rem;
 }
 
-.clear-search {
+.filters-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.filters-title h3 {
+  margin: 0;
+  color: var(--text-dark);
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+
+.filters-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+  padding-top: 0.5rem;
+}
+
+.filter-group {
+  margin-bottom: 1.5rem;
+}
+
+.filter-group:last-child {
+  margin-bottom: 0;
+}
+
+.filter-group label,
+.filter-group h4 {
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: var(--text-dark);
+}
+
+.toggle-filters-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: white;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-dark);
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.toggle-filters-btn:hover {
+  background-color: var(--primary-color);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.clear-search,
+.clear-category,
+.see-more-btn,
+.clear-rating-btn,
+.link-button {
   background: none;
   border: none;
   color: var(--primary-color);
   cursor: pointer;
   text-decoration: underline;
+  padding: 0;
   font-size: 0.875rem;
 }
 
-.clear-search:hover {
+.clear-search:hover,
+.clear-category:hover,
+.see-more-btn:hover,
+.clear-rating-btn:hover,
+.link-button:hover {
   color: var(--primary-color-dark);
 }
 
-.products-content {
-  background-color: white;
+.see-more-btn,
+.clear-rating-btn {
+  margin-top: 0.75rem;
+}
+
+.clear-category {
+  margin-top: 0.5rem;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #ddd;
   border-radius: var(--border-radius);
-  padding: 3rem;
-  box-shadow: var(--shadow-sm);
+  font-size: 1rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+  background-color: #fff;
+  color: var(--text-dark);
 }
 
-.products-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 2rem;
+.form-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
-.products-grid-placeholder {
-  background-color: #dbeafe;
-  border: 1px solid #3b82f6;
-  border-radius: var(--border-radius);
-  padding: 2rem;
-  text-align: center;
+.select-wrapper {
+  position: relative;
 }
 
-.products-grid-placeholder h3 {
-  color: #1e40af;
-  margin-bottom: 1rem;
+.select-wrapper .form-input {
+  appearance: none;
+  padding-right: 2.5rem;
+  cursor: pointer;
 }
 
-.products-grid-placeholder p {
-  color: #1e40af;
-  margin-bottom: 1rem;
+.select-arrow {
+  position: absolute;
+  top: 50%;
+  right: 1rem;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid #6b7280;
+  pointer-events: none;
+  transition: transform 0.2s ease;
 }
 
-.products-grid-placeholder ul {
-  color: #1e40af;
-  margin-left: 1.5rem;
-  text-align: left;
-}
-
-.products-grid-placeholder li {
-  margin-bottom: 0.5rem;
+.select-wrapper .form-input:focus + .select-arrow {
+  transform: translateY(-50%) rotate(180deg);
 }
 
 .price-range-container {
@@ -596,18 +858,50 @@ onMounted(() => {
   font-size: 0.8rem;
 }
 
+.star-rating-filter {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.star {
+  cursor: pointer;
+  color: #e5e7eb;
+  transition: color 0.2s, transform 0.1s;
+  display: inline-block;
+}
+
+.star:hover {
+  transform: scale(1.1);
+}
+
+.star.filled {
+  color: #f59e0b;
+}
+
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2rem;
+}
+
 .no-results {
   text-align: center;
   padding: 3rem;
   color: var(--text-light);
 }
 
-.link-button {
-  background: none;
-  border: none;
-  color: var(--primary-color);
-  cursor: pointer;
-  text-decoration: underline;
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  gap: 1rem;
+}
+
+.loading-container p {
+  color: var(--text-light);
 }
 
 .pagination-container {
@@ -631,6 +925,9 @@ onMounted(() => {
   border-radius: var(--border-radius);
   cursor: pointer;
   transition: all 0.2s;
+  color: var(--text-dark);
+  font-size: 0.875rem;
+  font-weight: 500;
 }
 
 .pagination-btn:hover:not(:disabled) {
@@ -684,17 +981,15 @@ onMounted(() => {
   text-align: center;
 }
 
-.loading-container {
+.search-info {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
-  height: 200px;
-  gap: 1rem;
-}
-
-.loading-container p {
-  color: var(--text-light);
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background-color: #f3f4f6;
+  border-radius: 4px;
+  font-size: 0.875rem;
 }
 
 .active-filters {
@@ -748,88 +1043,39 @@ onMounted(() => {
   background-color: rgba(255, 255, 255, 0.2);
 }
 
-.clear-category {
-  margin-top: 0.5rem;
-  background: none;
-  border: none;
-  color: var(--primary-color);
-  cursor: pointer;
-  text-decoration: underline;
-  font-size: 0.875rem;
-}
-
-.clear-category:hover {
-  color: var(--primary-color-dark);
-}
-
-.form-input {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border: 1px solid #ddd;
-  border-radius: var(--border-radius);
-  font-size: 1rem;
-  transition: border-color 0.2s, box-shadow 0.2s;
-  box-sizing: border-box;
-  background-color: #fff;
-  color: var(--text-dark);
-}
-
-.form-input:focus {
-  outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.filter-group {
-  margin-bottom: 1.5rem;
-}
-
-.filter-group:last-child {
-  margin-bottom: 0;
-}
-
-.filter-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-  color: var(--text-dark);
-}
-
-.select-wrapper {
-  position: relative;
-}
-
-.select-wrapper .form-input {
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-  padding-right: 2.5rem; /* Make space for the arrow */
-  cursor: pointer;
-}
-
-.select-arrow {
-  position: absolute;
-  top: 50%;
-  right: 1rem;
-  transform: translateY(-50%);
-  width: 0;
-  height: 0;
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-top: 6px solid #6b7280; /* Arrow color */
-  pointer-events: none;
-  transition: transform 0.2s ease;
-}
-
-.select-wrapper .form-input:focus + .select-arrow {
-  transform: translateY(-50%) rotate(180deg);
-}
-
 @media (max-width: 768px) {
+  .products-controls {
+    grid-template-columns: 1fr;
+  }
+  
+  .products-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
   .products-header-info {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.5rem;
+  }
+
+  .filters-header {
+    margin: -1.5rem -1.5rem 1rem -1.5rem;
+    padding: 1rem;
+    border-radius: 8px;
+  }
+
+  .filters-title h3 {
+    font-size: 1.1rem;
+  }
+
+  .toggle-filters-btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+  }
+
+  .filters-content {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
   }
 
   .pagination {
@@ -841,15 +1087,6 @@ onMounted(() => {
     order: -1;
     width: 100%;
     justify-content: center;
-  }
-}
-
-@media (max-width: 768px) {
-  .products-controls {
-    grid-template-columns: 1fr;
-  }
-  .products-grid {
-    grid-template-columns: repeat(2, 1fr);
   }
 }
 

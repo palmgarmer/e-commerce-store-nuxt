@@ -40,6 +40,16 @@ export interface Product {
   category: string
   thumbnail: string
   images: string[]
+  reviews: Review[]
+}
+
+export interface Review {
+  id: number
+  comment: string
+  date: string
+  rating: number
+  reviewerEmail: string
+  reviewerName: string
 }
 
 export interface ProductsResponse {
