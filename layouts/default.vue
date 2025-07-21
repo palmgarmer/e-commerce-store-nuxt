@@ -9,6 +9,10 @@
             </NuxtLink>
             
             <div class="nav-menu" :class="{ 'active': mobileMenuOpen }">
+              <button class="mobile-menu-close" @click="closeMobileMenu">
+                ×
+              </button>
+              
               <NuxtLink to="/" class="nav-link" @click="closeMobileMenu">Home</NuxtLink>
               <NuxtLink to="/products" class="nav-link" @click="closeMobileMenu">Products</NuxtLink>
               <NuxtLink to="/categories" class="nav-link" @click="closeMobileMenu">Categories</NuxtLink>
@@ -382,9 +386,34 @@ onMounted(() => {
     transition: left 0.3s ease;
   }
   
-  /* Bug: This should be .nav-menu.active but missing the active state toggle */
-  .nav-menu {
-    left: -100%;
+  .nav-menu.active {
+    left: 0;
+  }
+  
+  .mobile-menu-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 50%;
+    transition: background-color 0.2s ease;
+    color: var(--text-color);
+    font-size: 1.5rem;
+    font-weight: bold;
+    line-height: 1;
+    width: 2.5rem;
+    height: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .mobile-menu-close:hover {
+    background-color: var(--light-color);
+    color: var(--primary-color);
   }
   
   .nav-actions {

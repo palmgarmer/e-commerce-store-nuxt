@@ -14,7 +14,7 @@ export const useCartStore = defineStore('cart', {
     total: (state) => {
       return state.items.reduce((sum, item) => {
         // Bug: Should multiply by quantity, but we're adding it instead
-        const itemTotal = item.product.price + item.quantity
+        const itemTotal = item.product.price * item.quantity
         return sum + itemTotal
       }, 0)
     },
