@@ -9,9 +9,9 @@
             </NuxtLink>
             
             <div class="nav-menu" :class="{ 'active': mobileMenuOpen }">
-              <button class="mobile-menu-close" @click="closeMobileMenu">
+                <button v-if="mobileMenuOpen" class="mobile-menu-close" @click="closeMobileMenu">
                 ×
-              </button>
+                </button>
               
               <NuxtLink to="/" class="nav-link" @click="closeMobileMenu">Home</NuxtLink>
               <NuxtLink to="/products" class="nav-link" @click="closeMobileMenu">Products</NuxtLink>

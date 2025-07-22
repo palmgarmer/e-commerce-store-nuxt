@@ -135,3 +135,42 @@ export interface FilterParams extends PaginationParams {
   maxPrice?: number
   brand?: string
 }
+
+// suggested search
+export interface SearchSuggestion {
+  id: string
+  type: 'product' | 'category' | 'brand' | 'recent'
+  title: string
+  subtitle?: string
+  image?: string
+  price?: number
+  category?: string
+  brand?: string
+  query?: string
+}
+
+export interface SearchHistory {
+  id: string
+  query: string
+  timestamp: Date
+  resultCount: number
+}
+
+export interface SearchFilters {
+  categories: string[]
+  brands: string[]
+  priceRange: {
+    min: number | null
+    max: number | null
+  }
+  rating: number
+  sortBy: string
+}
+
+export interface AutocompleteResult {
+  suggestions: SearchSuggestion[]
+  products: Product[]
+  categories: string[]
+  brands: string[]
+  totalResults: number
+}

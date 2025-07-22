@@ -9,16 +9,66 @@
       <div class="products-controls">
         <div class="search-section">
           <h3>Search Products</h3>
-          <input
-            v-model="searchTerm"
-            type="text"
-            class="form-input"
-            placeholder="Search product title"
-          />
-          <button v-if="searchTerm" @click="clearSearch" class="clear-search">
-            Clear Search
-          </button>
+          
+          <div class="search-autocomplete-container" ref="searchContainer">
+            <input
+              v-model="searchTerm"
+              type="text"
+              class="form-input search-input"
+              placeholder="Search product title"
+              @input="handleSearchInput"
+              @focus="showAutocomplete = true"
+              @keydown="handleKeydown"
+              @blur="handleSearchBlur"
+            />
+            
+            <button 
+              v-if="searchTerm" 
+              @click="clearSearch" 
+              class="clear-search-btn"
+            >
+              ×
+            </button>
+            
+            <div 
+              v-if="showAutocomplete && (autocomplete.length > 0 || isSearching)"
+              class="autocomplete-dropdown"
+            >
+              <div v-if="isSearching" class="autocomplete-loading">
+                <div class="loading-spinner"></div>
+                <span>Searching...</span>
+              </div>
+              
+              <div v-else-if="autocomplete.length > 0" class="autocomplete-results">
+                <div
+                  v-for="(suggestion, index) in autocomplete"
+                  :key="index"
+                  @click="selectSuggestion(suggestion)"
+                  @mouseenter="highlightedIndex = index"
+                  class="autocomplete-item"
+                  :class="{ 'highlighted': index === highlightedIndex }"
+                >
+                  <div class="search-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  <span class="suggestion-text" v-html="highlightMatch(suggestion, searchTerm)"></span>
+                </div>
+              </div>
+              
+              <div v-else-if="searchTerm.trim()" class="autocomplete-no-results">
+                <span>No suggestions found for "{{ searchTerm }}"</span>
+              </div>
+            </div>
+          </div>
+          
+          <div v-if="searchTerm" class="search-info">
+            <span>Searching for: <strong>"{{ searchTerm }}"</strong></span>
+            <button @click="clearSearch" class="clear-search">Clear Search</button>
+          </div>
         </div>
+        
         <div class="filters-section">
           <div class="filters-header">
               <h3>Filters</h3>
@@ -262,6 +312,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed, onMounted, ref, watch } from 'vue';
 import type { Product } from "~/types";
 
 const { getAllProducts, getCategories, searchProducts, getProductsByCategory } =
@@ -280,6 +331,7 @@ const searchTerm = ref("");
 const selectedCategory = ref("");
 const selectedBrands = ref<string[]>([]);
 const sortBy = ref<string>('');
+
 
 const sortOptions = [
   { value: '', label: 'Default' },
@@ -310,6 +362,28 @@ const initialBrandLimit = 3;
 
 const selectedRating = ref(0);
 const hoverRating = ref(0);
+
+const autocomplete = ref<string[]>([]);
+
+const showAutocomplete = ref(false)
+const isSearching = ref(false)
+const highlightedIndex = ref(-1)
+const searchContainer = ref<HTMLElement>()
+
+const searchAutocomplete = async (query: string) => {
+  if (!query.trim()) {
+    autocomplete.value = [];
+    return;
+  }
+
+  try {
+    const response = await searchProducts(query, { limit: 10 });
+    autocomplete.value = response.products.map(p => p.title);
+  } catch (err) {
+    console.error("Autocomplete search failed:", err);
+    autocomplete.value = [];
+  }
+};
 
 const availableBrands = computed(() => {
   if (!allProducts.value.length) return [];
@@ -367,6 +441,8 @@ function clearRatingFilter() {
 
 const clearSearch = () => {
   searchTerm.value = "";
+  autocomplete.value = []
+  hideAutocomplete()
   fetchProducts(true);
 };
 
@@ -532,9 +608,10 @@ const fetchProducts = async (resetPage = false) => {
   }
 };
 
-// Debounced
 let searchTimeout: ReturnType<typeof setTimeout> | null = null;
 let priceTimeout: ReturnType<typeof setTimeout> | null = null;
+
+let autocompleteTimeout: ReturnType<typeof setTimeout> | null = null
 
 const debouncedSearch = () => {
   if (searchTimeout) {
@@ -552,11 +629,33 @@ const debouncedPriceFilter = () => {
   }
   priceTimeout = setTimeout(() => {
     fetchProducts(true);
-  }, 800); // Longer debounce for price inputs
+  }, 800);
 };
 
+const debouncedAutocomplete = () => {
+  if (autocompleteTimeout) {
+    clearTimeout(autocompleteTimeout)
+  }
+  
+  autocompleteTimeout = setTimeout(async () => {
+    if (searchTerm.value.trim()) {
+      isSearching.value = true
+      showAutocomplete.value = true
+      
+      try {
+        await searchAutocomplete(searchTerm.value)
+      } catch (error) {
+        console.error('Autocomplete error:', error)
+        autocomplete.value = []
+      } finally {
+        isSearching.value = false
+      }
+    }
+  }, 300)
+}
+
 watch(searchTerm, () => {
-  debouncedSearch();
+  handleSearchInput()
 });
 
 watch(selectedCategory, () => {
@@ -619,6 +718,91 @@ const getVisiblePages = () => {
 
   return pages;
 };
+
+const handleSearchInput = () => {
+  highlightedIndex.value = -1
+  
+  if (searchTerm.value.trim()) {
+    debouncedAutocomplete()
+  } else {
+    autocomplete.value = []
+    showAutocomplete.value = false
+  }
+  
+  debouncedSearch()
+}
+
+const handleSearchBlur = () => {
+  setTimeout(() => {
+    hideAutocomplete()
+  }, 150)
+}
+
+const selectSuggestion = (suggestion: string) => {
+  searchTerm.value = suggestion
+  hideAutocomplete()
+  fetchProducts(true)
+}
+
+const hideAutocomplete = () => {
+  showAutocomplete.value = false
+  highlightedIndex.value = -1
+}
+
+const handleKeydown = (event: KeyboardEvent) => {
+  if (!showAutocomplete.value || autocomplete.value.length === 0) {
+    return
+  }
+
+  switch (event.key) {
+    case 'ArrowDown':
+      event.preventDefault()
+      highlightedIndex.value = Math.min(highlightedIndex.value + 1, autocomplete.value.length - 1)
+      break
+      
+    case 'ArrowUp':
+      event.preventDefault()
+      highlightedIndex.value = Math.max(highlightedIndex.value - 1, -1)
+      break
+      
+    case 'Enter':
+      event.preventDefault()
+      if (highlightedIndex.value >= 0 && highlightedIndex.value < autocomplete.value.length) {
+        selectSuggestion(autocomplete.value[highlightedIndex.value])
+      } else if (searchTerm.value.trim()) {
+        hideAutocomplete()
+        fetchProducts(true)
+      }
+      break
+      
+    case 'Escape':
+      event.preventDefault()
+      hideAutocomplete()
+      break
+  }
+}
+
+const highlightMatch = (text: string, query: string): string => {
+  if (!query.trim()) return text
+  
+  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
+  return text.replace(regex, '<mark>$1</mark>')
+}
+
+const handleClickOutside = (event: Event) => {
+  if (searchContainer.value && !searchContainer.value.contains(event.target as Node)) {
+    hideAutocomplete()
+  }
+}
+
+onMounted(() => {
+  fetchProducts()
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 
 // Initial load
 onMounted(() => {
@@ -985,114 +1169,150 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 0.5rem;
-  padding: 0.5rem;
-  background-color: #f3f4f6;
-  border-radius: 4px;
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
   font-size: 0.875rem;
 }
 
-.active-filters {
-  background-color: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: var(--border-radius);
-  padding: 1rem;
-  margin-bottom: 2rem;
+.search-info strong {
+  color: #1f2937;
 }
 
-.active-filters h4 {
-  margin: 0 0 0.5rem 0;
-  color: var(--text-dark);
-  font-size: 0.9rem;
+/* Search Autocomplete Styles */
+.search-autocomplete-container {
+  position: relative;
+  width: 100%;
 }
 
-.filter-tags {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+.search-input {
+  padding-right: 2.5rem; /* Space for clear button */
+  position: relative;
 }
 
-.filter-tag {
-  background-color: var(--primary-color);
-  color: white;
-  padding: 0.25rem 0.75rem;
-  border-radius: 1rem;
-  font-size: 0.8rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.remove-filter {
+.clear-search-btn {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
   background: none;
   border: none;
-  color: white;
+  color: #6b7280;
   cursor: pointer;
-  font-size: 1rem;
+  font-size: 1.25rem;
   line-height: 1;
-  padding: 0;
-  width: 16px;
-  height: 16px;
+  padding: 0.25rem;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.clear-search-btn:hover {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+.autocomplete-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  z-index: 50;
+  max-height: 300px;
+  overflow-y: auto;
+  margin-top: 0.25rem;
+}
+
+.autocomplete-loading {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.loading-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e5e7eb;
+  border-top: 2px solid #3b82f6;
   border-radius: 50%;
+  animation: spin 1s linear infinite;
 }
 
-.remove-filter:hover {
-  background-color: rgba(255, 255, 255, 0.2);
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
+.autocomplete-results {
+  padding: 0.5rem 0;
+}
+
+.autocomplete-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.autocomplete-item:hover,
+.autocomplete-item.highlighted {
+  background-color: #f8fafc;
+}
+
+.autocomplete-item .search-icon {
+  width: 16px;
+  height: 16px;
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+.suggestion-text {
+  flex: 1;
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.suggestion-text :deep(mark) {
+  background-color: #fef3c7;
+  color: #d97706;
+  font-weight: 600;
+  padding: 0 0.125rem;
+  border-radius: 2px;
+}
+
+.autocomplete-no-results {
+  padding: 1rem;
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.875rem;
+  font-style: italic;
+}
+
+/* Responsive adjustments */
 @media (max-width: 768px) {
-  .products-controls {
-    grid-template-columns: 1fr;
+  .autocomplete-dropdown {
+    max-height: 250px;
   }
   
-  .products-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .autocomplete-item {
+    padding: 0.625rem 0.875rem;
   }
-
-  .products-header-info {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
-  }
-
-  .filters-header {
-    margin: -1.5rem -1.5rem 1rem -1.5rem;
-    padding: 1rem;
-    border-radius: 8px;
-  }
-
-  .filters-title h3 {
-    font-size: 1.1rem;
-  }
-
-  .toggle-filters-btn {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.8rem;
-  }
-
-  .filters-content {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-  }
-
-  .pagination {
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-
-  .pagination-numbers {
-    order: -1;
-    width: 100%;
-    justify-content: center;
+  
+  .suggestion-text {
+    font-size: 0.8125rem;
   }
 }
 
-@media (max-width: 480px) {
-  .products-grid {
-    grid-template-columns: 1fr;
-  }
-}
+/* ... rest of existing styles ... */
 </style>

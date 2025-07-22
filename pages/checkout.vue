@@ -18,13 +18,13 @@
           </div>
         </div>
       </div>
-      
+
       <div class="checkout-content">
         <div class="checkout-form">
           <!-- Step 1: Shipping Information -->
           <div v-if="step === 1" class="checkout-step">
             <h2>Shipping Information</h2>
-            
+
             <form @submit.prevent="nextStep">
               <div class="form-row">
                 <div class="form-group">
@@ -48,7 +48,7 @@
                   />
                 </div>
               </div>
-              
+
               <div class="form-group">
                 <label for="address" class="form-label">Street Address</label>
                 <input
@@ -59,7 +59,7 @@
                   required
                 />
               </div>
-              
+
               <div class="form-row">
                 <div class="form-group">
                   <label for="city" class="form-label">City</label>
@@ -92,17 +92,44 @@
                   />
                 </div>
               </div>
-              
+
               <div class="form-actions">
-                <button type="submit" class="btn btn-primary">Continue to Payment</button>
+                <button type="submit" class="btn btn-primary">
+                  Continue to Payment
+                </button>
               </div>
             </form>
           </div>
-          
+
           <!-- Step 2: Payment Information -->
           <div v-else-if="step === 2" class="checkout-step">
             <h2>Payment Information</h2>
-            
+
+            <!-- <div class="card-js">
+              <input 
+                class="card-number my-custom-class" 
+                name="card-number" 
+                placeholder="card number"/>
+              <input
+                class="name"
+                id="the-card-name-id"
+                name="card-holders-name"
+                placeholder="Name on card"
+              />
+              <input 
+                class="expiry-month" 
+                name="expiry-month" 
+                placeholder="MM"/>
+              <input 
+                class="expiry-year" 
+                name="expiry-year" 
+                placeholder="YY"/>
+              <input 
+                class="cvc" 
+                name="cvc" 
+                placeholder="CVC"/>
+            </div> -->
+
             <!-- TODO: Implement payment form -->
             <div class="incomplete-section">
               <div class="incomplete-message">
@@ -117,17 +144,21 @@
                 </ul>
               </div>
             </div>
-            
+
             <div class="form-actions">
-              <button @click="step = 1" class="btn btn-outline">Back to Shipping</button>
-              <button @click="nextStep" class="btn btn-primary" disabled>Continue to Review</button>
+              <button @click="step = 1" class="btn btn-outline">
+                Back to Shipping
+              </button>
+              <button @click="nextStep" class="btn btn-primary" disabled>
+                Continue to Review
+              </button>
             </div>
           </div>
-          
+
           <!-- Step 3: Order Review -->
           <div v-else-if="step === 3" class="checkout-step">
             <h2>Order Review</h2>
-            
+
             <div class="incomplete-section">
               <div class="incomplete-message">
                 <h3>🚧 Order Review Incomplete</h3>
@@ -141,22 +172,32 @@
                 </ul>
               </div>
             </div>
-            
+
             <div class="form-actions">
-              <button @click="step = 2" class="btn btn-outline">Back to Payment</button>
+              <button @click="step = 2" class="btn btn-outline">
+                Back to Payment
+              </button>
               <button class="btn btn-primary" disabled>Place Order</button>
             </div>
           </div>
         </div>
-        
+
         <div class="order-summary">
           <div class="summary-card">
             <h3>Order Summary</h3>
-            
+
             <div class="summary-items">
-              <div v-for="item in cartItems" :key="item.id" class="summary-item">
+              <div
+                v-for="item in cartItems"
+                :key="item.id"
+                class="summary-item"
+              >
                 <div class="item-info">
-                  <img :src="item.product.thumbnail" :alt="item.product.title" class="item-image" />
+                  <img
+                    :src="item.product.thumbnail"
+                    :alt="item.product.title"
+                    class="item-image"
+                  />
                   <div class="item-details">
                     <h4>{{ item.product.title }}</h4>
                     <p>Qty: {{ item.quantity }}</p>
@@ -167,7 +208,7 @@
                 </div>
               </div>
             </div>
-            
+
             <div class="summary-totals">
               <div class="summary-row">
                 <span>Subtotal:</span>
@@ -194,35 +235,35 @@
 </template>
 
 <script setup lang="ts">
-import { storeToRefs } from 'pinia'
+import { storeToRefs } from "pinia";
 
-const cartStore = useCartStore()
-const { items: cartItems, subtotal } = storeToRefs(cartStore)
+const cartStore = useCartStore();
+const { items: cartItems, subtotal } = storeToRefs(cartStore);
 
 // Redirect if cart is empty
 if (cartItems.value.length === 0) {
-  await navigateTo('/cart')
+  await navigateTo("/cart");
 }
 
-const step = ref(1)
+const step = ref(1);
 
 const shippingForm = reactive({
-  firstName: '',
-  lastName: '',
-  address: '',
-  city: '',
-  state: '',
-  zipCode: ''
-})
+  firstName: "",
+  lastName: "",
+  address: "",
+  city: "",
+  state: "",
+  zipCode: "",
+});
 
-const tax = computed(() => subtotal.value * 0.08) // 8% tax
-const finalTotal = computed(() => subtotal.value + tax.value)
+const tax = computed(() => subtotal.value * 0.08); // 8% tax
+const finalTotal = computed(() => subtotal.value + tax.value);
 
 const nextStep = () => {
   if (step.value < 3) {
-    step.value++
+    step.value++;
   }
-}
+};
 </script>
 
 <style scoped>
@@ -433,16 +474,16 @@ const nextStep = () => {
     grid-template-columns: 1fr;
     gap: 2rem;
   }
-  
+
   .checkout-steps {
     flex-direction: column;
     align-items: center;
   }
-  
+
   .form-row {
     grid-template-columns: 1fr;
   }
-  
+
   .form-actions {
     justify-content: center;
   }

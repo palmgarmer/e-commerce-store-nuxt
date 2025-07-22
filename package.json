@@ -12,11 +12,15 @@
   "dependencies": {
     "@nuxt/ui": "^3.2.0",
     "@pinia/nuxt": "^0.11.1",
+    "card-js": "^1.0.13",
+    "credit-card-type": "^10.0.2",
     "nuxt": "^3.17.6",
     "pinia": "^3.0.3",
-    "vue": "^3.5.17"
+    "vue": "^3.5.17",
+    "vue-credit-card-validation": "^1.0.5"
   },
   "devDependencies": {
+    "@types/credit-card-type": "^7.0.0",
     "@types/node": "^24.0.12",
     "typescript": "^5.8.3",
     "vue-tsc": "^2.2.12"
