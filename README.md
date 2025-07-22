@@ -50,7 +50,7 @@ Use the provided public API endpoints from DummyJSON – no need to set up a bac
 
 ### 2. **Bug Fixes**
 
-#### [x] Cart Calculation Bug
+#### Cart Calculation Bug
 **Location**: `/stores/cart.ts` (line 18-22)
 
 **Issue**: Cart total calculation is incorrect
@@ -64,7 +64,7 @@ const itemTotal = item.product.price + item.quantity
 const itemTotal = item.product.price * item.quantity
 ```
 
-#### [x] Mobile Navigation Bug
+#### Mobile Navigation Bug
 **Location**: `/layouts/default.vue` (line 229)
 
 **Issue**: Mobile menu doesn't open when hamburger is clicked
