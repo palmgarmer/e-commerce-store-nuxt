@@ -30,17 +30,17 @@ Use the provided public API endpoints from DummyJSON – no need to set up a bac
 **Current State**: Placeholder with implementation hints
 
 **Requirements**:
-- [ ] Implement product grid with responsive design
-- [ ] Add search functionality with debouncing
-- [ ] Create category filter (dropdown)
-- [ ] Add price range filter (slider or inputs)
-- [ ] Implement brand filter (checkbox list)
-- [ ] Add rating filter (star rating)
-- [ ] Create sort options (price, rating, popularity)
-- [ ] Add pagination or infinite scroll
-- [ ] Implement grid/list view toggle
-- [ ] Add loading states and error handling
-- [ ] Make responsive for mobile devices
+- [x] Implement product grid with responsive design
+- [x] Add search functionality with debouncing
+- [x] Create category filter (dropdown)
+- [x] Add price range filter (slider or inputs)
+- [x] Implement brand filter (checkbox list)
+- [x] Add rating filter (star rating)
+- [x] Create sort options (price, rating, popularity)
+- [x] Add pagination or infinite scroll
+- [x] Implement grid/list view toggle
+- [x] Add loading states and error handling
+- [x] Make responsive for mobile devices
 
 **API Endpoints to Use**:
 - `GET /products` - Get all products
@@ -50,7 +50,7 @@ Use the provided public API endpoints from DummyJSON – no need to set up a bac
 
 ### 2. **Bug Fixes**
 
-#### Cart Calculation Bug
+#### [x] Cart Calculation Bug
 **Location**: `/stores/cart.ts` (line 18-22)
 
 **Issue**: Cart total calculation is incorrect
@@ -64,7 +64,7 @@ const itemTotal = item.product.price + item.quantity
 const itemTotal = item.product.price * item.quantity
 ```
 
-#### Mobile Navigation Bug
+#### [x] Mobile Navigation Bug
 **Location**: `/layouts/default.vue` (line 229)
 
 **Issue**: Mobile menu doesn't open when hamburger is clicked
@@ -216,8 +216,8 @@ Optional – only needed if you want to explore auth-protected routes.
 - [ ] Good component structure (2 points)
 
 ## 🎯 Bonus Points (Optional - only if you have extra time and want to explore additional features)
-- [ ] Add loading animations
-- [ ] Implement advanced search (autocomplete, suggestions)
+- [x] Add loading animations
+- [x] Implement advanced search (autocomplete, suggestions)
 - [ ] Add product comparison feature
 - [ ] Create wishlist functionality
 - [ ] Add product reviews/ratings
